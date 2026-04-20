@@ -1,0 +1,23 @@
+# Core ML frameworks
+torch>=2.0.0
+pytorch-lightning>=2.0.0
+
+# Sentence embeddings
+sentence-transformers>=2.2.0
+
+# Information retrieval
+rank-bm25>=0.2.2  # For BM25 baseline
+
+# Data processing
+pandas>=2.0.0
+numpy>=1.24.0
+pyarrow>=12.0.0  # For parquet file support
+
+# Scientific computing
+scipy>=1.10.0  # For spearman correlation
+
+# Utilities
+tqdm>=4.65.0
+
+# Plotting (for analysis scripts)
+matplotlib>=3.7.0
