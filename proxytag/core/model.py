@@ -168,7 +168,7 @@ class HybridRecLightning(pl.LightningModule):
             print(f"{'='*60}\n")
 
         alpha = torch.sigmoid(self.tag_gate)         # scalar
-        item_combined_vec = alpha * item_vec + tags_vec
+        item_combined_vec = alpha * item_vec + (1 - alpha) * tags_vec
         
         # dot-product score
         scores = (user_vec * item_combined_vec).sum(dim=1)
