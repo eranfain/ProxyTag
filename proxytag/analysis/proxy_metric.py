@@ -2,7 +2,7 @@
 """
 Proxy Metric for Tag Quality Evaluation.
 
-Evaluates tag quality by measuring correlation between CF-based and tag-based
+Evaluates tag quality by measuring alignment between CF-based and tag-based
 item similarities. This provides a fast proxy for predicting downstream
 hybrid model performance without expensive training.
 
@@ -15,7 +15,7 @@ Algorithm:
 6. For each panel item:
    - Find K most similar items by CF
    - Find K most similar items by tags
-   - Compute Spearman correlation between similarity rankings
+   - Compute NO@K metric
 7. Aggregate correlations (overall + by popularity bucket)
 """
 
@@ -25,6 +25,7 @@ import os
 import numpy as np
 import pandas as pd
 import torch
+import implicit
 import torch.nn.functional as F
 from scipy.stats import spearmanr
 from pathlib import Path
@@ -81,7 +82,7 @@ def sample_panel_items(train_df, item_col, panel_size=0.05, n_bins=10, seed=42):
     return np.array(panel_items), item_bins
 
 
-def build_interaction_matrix(train_df, item2idx, user_id_col, item_id_col):
+def get_cf_item_emb(train_df, item2idx, user_id_col, item_id_col, embedding_dim=64):
     """
     Build item-user interaction matrix from training data.
 
@@ -99,28 +100,31 @@ def build_interaction_matrix(train_df, item2idx, user_id_col, item_id_col):
     print("--- Building Interaction Matrix ---")
 
     # Get unique users
-    unique_users = train_df[user_id_col].unique()
-    user_to_idx = {user: idx for idx, user in enumerate(unique_users)}
+    user_map = {u: i for i, u in enumerate(train_df[user_id_col].unique())}
 
-    num_items = len(item2idx)
-    num_users = len(unique_users)
+    train_df['uid'] = train_df[user_id_col].map(user_map)
+    train_df['iid'] = train_df[item_id_col].map(item2idx)
+    train_df['rating'] = 1
 
-    # Build sparse matrix - more efficient using groupby
-    rows = []
-    cols = []
+    # Rebuild train_mat here
+    print("Start training the CF model")
+    train_mat = csr_matrix((train_df['rating'], (train_df['uid'], train_df['iid'])),
+                           shape=(len(user_map), len(item2idx)))
 
-    for item_id, user_id in zip(train_df[item_id_col].values, train_df[user_id_col].values):
-        if item_id in item2idx and user_id in user_to_idx:
-            rows.append(item2idx[item_id])
-            cols.append(user_to_idx[user_id])
+    # TRAIN THE MODEL AFTER THIS STEP
+    model = implicit.als.AlternatingLeastSquares(
+        factors=embedding_dim, regularization=0.1, iterations=20
+    )
+    model.fit(train_mat)
+    item_embeddings = model.item_factors
 
-    data = np.ones(len(rows))
-    interaction_matrix = csr_matrix((data, (rows, cols)), shape=(num_items, num_users))
+    # map back to movieIds
+    cf_emb = {mid: item_embeddings[idx] / np.linalg.norm(item_embeddings[idx])
+              for mid, idx in item2idx.items()}
 
-    print(f"  Shape: {interaction_matrix.shape}")
-    print(f"  Density: {interaction_matrix.nnz / (num_items * num_users):.6f}")
+    print("Completed CF training")
 
-    return interaction_matrix
+    return cf_emb
 
 
 def extract_cf_embeddings(checkpoint_path, num_items, device='cuda'):
@@ -225,11 +229,7 @@ def compute_similarity_correlation_panel(
     exclude_self=True
 ):
     """
-    Compute Spearman correlation between CF and tag similarities within panel.
-
-    Based on approach from notebooks/2_SmartTags_panel_comparison.ipynb:
     - Find top-K CF neighbors
-    - Compute rank correlation with tag similarities for those neighbors
     - Compute recall (overlap) between top-K CF and top-K tag neighbors
 
     Args:
@@ -269,81 +269,7 @@ def compute_similarity_correlation_panel(
     # Compute recall: overlap between top-K sets
     recall = len(set(cf_top_k_idx) & set(tag_top_k_idx)) / K
 
-    # Compute Spearman rank correlation among CF top-K neighbors
-    # Get tag rankings for ALL panel items
-    tag_all_ranked = np.argsort(-tag_sims)
-
-    # For each CF top-K item, find:
-    # - Its rank in CF top-K list (0 to K-1)
-    # - Its rank in tag similarity list (0 to panel_size-1)
-    cf_ranks = np.arange(K)  # 0, 1, 2, ..., K-1
-    tag_ranks = np.array([np.where(tag_all_ranked == idx)[0][0] for idx in cf_top_k_idx])
-
-    # Compute Spearman correlation between these ranks
-    if len(np.unique(cf_ranks)) > 1 and len(np.unique(tag_ranks)) > 1:
-        corr, _ = spearmanr(cf_ranks, tag_ranks)
-    else:
-        corr = 0.0
-
-    return corr, recall
-
-
-def compute_similarity_correlation(
-    panel_item_idx,
-    cf_embeddings,
-    tag_embeddings,
-    K=50,
-    exclude_self=True
-):
-    """
-    Compute Spearman correlation between CF and tag similarities for one item.
-
-    DEPRECATED: Use compute_similarity_correlation_panel instead for proxy metric.
-    This function computes similarities across ALL items, not just panel.
-
-    Args:
-        panel_item_idx: Index of panel item
-        cf_embeddings: [num_items, cf_dim] CF embeddings
-        tag_embeddings: [num_items, tag_dim] tag embeddings
-        K: Number of top similar items to compare
-        exclude_self: Exclude the item itself from comparison
-
-    Returns:
-        correlation: Spearman correlation coefficient
-        overlap: Jaccard overlap of top-K sets
-    """
-    # Compute similarities
-    cf_vec = cf_embeddings[panel_item_idx]
-    tag_vec = tag_embeddings[panel_item_idx]
-
-    cf_sims = cf_embeddings @ cf_vec
-    tag_sims = tag_embeddings @ tag_vec
-
-    # Exclude self if requested
-    if exclude_self:
-        cf_sims[panel_item_idx] = -np.inf
-        tag_sims[panel_item_idx] = -np.inf
-
-    # Get top-K by CF
-    cf_top_k = np.argsort(-cf_sims)[:K]
-
-    # Get similarities for those items
-    cf_scores = cf_sims[cf_top_k]
-    tag_scores = tag_sims[cf_top_k]
-
-    # Compute Spearman correlation
-    if len(np.unique(cf_scores)) > 1 and len(np.unique(tag_scores)) > 1:
-        corr, _ = spearmanr(cf_scores, tag_scores)
-    else:
-        corr = 0.0
-
-    # Compute overlap (complementarity metric)
-    tag_top_k = set(np.argsort(-tag_sims)[:K])
-    cf_top_k_set = set(cf_top_k)
-    overlap = len(cf_top_k_set & tag_top_k) / K
-
-    return corr, overlap
-
+    return recall
 
 def evaluate_tag_quality(
     panel_items,
@@ -398,18 +324,15 @@ def evaluate_tag_quality(
     # Evaluate each panel item
     for i, item_id in enumerate(tqdm(panel_ids, desc="Computing correlations")):
         # Compute correlation within panel
-        corr, recall = compute_similarity_correlation_panel(
+        recall = compute_similarity_correlation_panel(
             i, panel_cf_embeddings, panel_tag_embeddings, K=K
         )
 
-        if not np.isnan(corr):
-            correlations.append(corr)
-            recalls.append(recall)
+        recalls.append(recall)
 
-            # By bin
-            bin_idx = item_bins.get(item_id, 0)
-            bin_correlations[bin_idx].append(corr)
-            bin_recalls[bin_idx].append(recall)
+        # By bin
+        bin_idx = item_bins.get(item_id, 0)
+        bin_recalls[bin_idx].append(recall)
 
     # Aggregate results
     results = {
@@ -547,7 +470,7 @@ def main():
     if args.use_interaction_cf:
         print("\n--- Using Interaction-based CF (Recommended) ---")
         # Build interaction matrix: items x users
-        interaction_matrix = build_interaction_matrix(
+        cf_embs = get_cf_item_emb(
             train_df,
             item2idx,
             args.user_id_col,
@@ -560,10 +483,10 @@ def main():
         print(f"  Panel items in matrix: {len(panel_indices):,} / {len(panel_items):,}")
 
         # Extract only panel rows and convert to dense
-        panel_matrix = interaction_matrix[panel_indices, :].toarray().astype(np.float32)
+        panel_matrix = cf_embs[panel_indices, :].toarray().astype(np.float32)
 
         # Create full-size array with zeros for non-panel items
-        cf_embeddings = np.zeros((num_items, interaction_matrix.shape[1]), dtype=np.float32)
+        cf_embeddings = np.zeros((num_items, cf_embs.shape[1]), dtype=np.float32)
         for i, panel_idx in enumerate(panel_indices):
             cf_embeddings[panel_idx] = panel_matrix[i]
 
@@ -575,14 +498,6 @@ def main():
         print(f"  CF representation: interaction vectors (normalized)")
         print(f"  Shape: {cf_embeddings.shape}")
         print(f"  Mean norm (panel only): {np.linalg.norm(cf_embeddings[panel_indices], axis=1).mean():.4f}")
-    else:
-        print("\n--- Using Learned CF Embeddings (Not recommended for proxy) ---")
-        # Extract CF embeddings from trained model
-        cf_embeddings = extract_cf_embeddings(
-            args.cf_checkpoint,
-            num_items,
-            device=args.device
-        )
 
     # Compute tag embeddings
     tag_embeddings, tag_item2idx = compute_tag_embeddings(

@@ -7,7 +7,7 @@
 # ==============================================================================
 set -e
 
-# --- Configuration (edit these) ---
+# --- Configuration ---
 DATASET="ml-32m"
 DATASET_DIR="data/${DATASET}"
 USER_ID_COL="userId"
@@ -17,12 +17,12 @@ TAGS_FILE="${DATASET_DIR}/tags_multi_use_knowledge_recommend_content.parquet"
 # --- Hyperparameters ---
 HIDDEN_DIM=256
 N_HEADS=8
-MAX_TAGS=36
+MAX_TAGS=24
 BATCH_SIZE=256
 LR=1e-3
 MAX_EPOCHS=50
 N_TRAIN_NEG=200
-N_TEST_NEG=1000
+N_TEST_NEG=999
 K=10
 EMBEDDING_REG=1e-5
 
