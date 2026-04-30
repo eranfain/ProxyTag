@@ -253,7 +253,7 @@ def run_prompt_over_df(
             completion = client.chat.completions.create(
                 model=deployment,
                 messages=chat_prompt,
-                max_completion_tokens=16384,
+                max_completion_tokens=1024,
                 stop=None,
                 stream=False
             )
@@ -332,7 +332,7 @@ def main():
                         help='List available prompts and exit')
 
     # Azure OpenAI
-    parser.add_argument('--deployment', type=str, default='gpt-4o',
+    parser.add_argument('--deployment', type=str, default='gpt-5-mini',
                         help='Azure OpenAI deployment name')
     parser.add_argument('--max_workers', type=int, default=16,
                         help='Number of parallel workers')
