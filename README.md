@@ -67,7 +67,7 @@ python scripts/generate_tags.py \
   --output_dir data/ml-32m/tags/full \
   --item_id_col movieId \
   --title_col title \
-  --genres_col genres
+  --description_col overview
 
 # Amazon Books
 python scripts/generate_tags.py \
@@ -105,13 +105,12 @@ python -m proxytag.analysis.proxy_metric \
   --user_id_col userId \
   --item_id_col movieId \
   --panel_size 0.05 \
-  --K 50
+  --K 10
 ```
 
 **Interpreting results:**
-- **Correlation** (Spearman rho): Higher = tags capture collaborative patterns
-- **Overlap** (Jaccard of top-K): Higher = tags are redundant with CF
-- Ideal tags: moderate correlation (0.5-0.7) with moderate overlap -- aligned but complementary
+- **NO@K** (Neighbour Overlap at K): Fraction of top-K neighbours shared between CF-based and tag-based rankings
+- Ideal tags: moderate NO@K (0.3-0.5) -- aligned but complementary to CF
 
 ## 4. Training the ProxyTag Model
 
@@ -127,14 +126,14 @@ python scripts/main.py \
   --user_id_col userId \
   --item_id_col movieId \
   --sentence_transformers_model all-MiniLM-L6-v2 \
-  --max_tags 36 \
-  --hidden_dim 256 \
-  --n_heads 8 \
+  --max_tags 24 \
+  --hidden_dim 64 \
+  --n_heads 4 \
   --batch_size 256 \
-  --lr 1e-3 \
+  --lr 1e-4 \
   --embedding_reg 1e-5 \
   --negative_sampler_n_items_train 200 \
-  --negative_sampler_n_items_test 1000 \
+  --negative_sampler_n_items_test 999 \
   --K 10 \
   --max_epochs 50
 ```
@@ -226,9 +225,9 @@ python -m proxytag.analysis.significance_test \
 
 Reports mean, std, t-statistic, p-value, and Cohen's d for Recall@K and NDCG@K.
 
-### Bucket Correlation Analysis
+### Bucket Analysis
 
-Analyze how proxy metric correlations vary across item popularity buckets:
+Analyze how proxy metric NO@K varies across item popularity buckets:
 
 ```bash
 python -m proxytag.analysis.analyze_bucket_correlations \
@@ -242,9 +241,8 @@ Create panel item subsets for proxy metric evaluation:
 
 ```bash
 python -m proxytag.analysis.create_panel_files \
-  --train_path data/ml-32m/train.parquet \
-  --tag_dir data/ml-32m/tags/full \
-  --output_dir data/ml-32m/tags/panel \
+  --dataset_dir data/ml-32m \
+  --item_id_col movieId \
   --panel_size 0.05
 ```
 

@@ -15,11 +15,11 @@ ITEM_ID_COL="movieId"
 TAGS_FILE="${DATASET_DIR}/tags_multi_use_knowledge_recommend_content.parquet"
 
 # --- Hyperparameters ---
-HIDDEN_DIM=256
-N_HEADS=8
+HIDDEN_DIM=64
+N_HEADS=4
 MAX_TAGS=24
 BATCH_SIZE=256
-LR=1e-3
+LR=1e-4
 MAX_EPOCHS=50
 N_TRAIN_NEG=200
 N_TEST_NEG=999

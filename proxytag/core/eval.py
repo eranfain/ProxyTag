@@ -71,7 +71,7 @@ def eval_split_fast(
             # ---- forward once ----
             user_vec, item_vec, tags_vec = model(u_flat, i_flat)  # calls user-conditioned attention
             alpha = torch.sigmoid(model.tag_gate)         # scalar
-            item_combined_vec = alpha * item_vec + tags_vec
+            item_combined_vec = alpha * item_vec + (1 - alpha) * tags_vec
             scores = (user_vec * item_combined_vec).sum(dim=1)
             scores = torch.clamp(scores, -20, 20)
             scores = scores.view(B, -1)  # [B, 1+n_neg]
@@ -191,7 +191,7 @@ def eval_split_by_bucket(
 
             user_vec, item_vec, tags_vec = model(u_batch, i_batch)  # calls user-conditioned attention
             alpha = torch.sigmoid(model.tag_gate)         # scalar
-            item_combined_vec = alpha * item_vec + tags_vec
+            item_combined_vec = alpha * item_vec + (1 - alpha) * tags_vec
 
             # Debug: check for NaN in intermediate values
             if debug and len(overall["precision"]) < 5:

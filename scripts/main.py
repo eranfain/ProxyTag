@@ -32,14 +32,14 @@ def parse_args():
 
     # embeddings
     p.add_argument("--sentence_transformers_model", type=str, required=True)
-    p.add_argument("--max_tags", type=int, default=16)
+    p.add_argument("--max_tags", type=int, default=24)
 
     # negative sampling
     p.add_argument("--negative_sampler_n_items_train", type=int, default=4)
-    p.add_argument("--negative_sampler_n_items_test", type=int, default=100)
+    p.add_argument("--negative_sampler_n_items_test", type=int, default=999)
 
     # model
-    p.add_argument("--hidden_dim", type=int, default=128)
+    p.add_argument("--hidden_dim", type=int, default=64)
     p.add_argument("--n_heads", type=int, default=4)
 
     # cross-att not implemented in this stable baseline

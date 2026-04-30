@@ -14,7 +14,7 @@ USER_ID_COL="userId"
 ITEM_ID_COL="movieId"
 
 # --- Hyperparameters ---
-HIDDEN_DIM=128
+HIDDEN_DIM=64
 BATCH_SIZE=1024
 LR=3e-4
 MAX_EPOCHS=20

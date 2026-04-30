@@ -90,14 +90,16 @@ class NegativeSampler:
 
         # sample with rejection, but vectorized
         negs = []
+        seen = set()
         max_attempts = n_neg * 10  # prevent infinite loops
         attempts = 0
 
         while len(negs) < n_neg and attempts < max_attempts:
             candidates = self.rng.integers(0, self.n_items, size=n_neg * 2)
             for c in candidates:
-                if c not in interacted:
+                if c not in interacted and c not in seen:
                     negs.append(c)
+                    seen.add(c)
                     if len(negs) == n_neg:
                         break
             attempts += 1

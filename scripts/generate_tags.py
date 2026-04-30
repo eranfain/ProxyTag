@@ -112,7 +112,6 @@ def generate_book_prompts():
                         f"- {f_text}\n"
                         "\nProcess the following book:\n"
                         "Name: {title}\n"
-                        "Genres: {genres}\n"
                         "Description: {text}\n"
                         "Tags:"
                     )
@@ -254,6 +253,7 @@ def run_prompt_over_df(
                 model=deployment,
                 messages=chat_prompt,
                 max_completion_tokens=1024,
+                temperature=0.7,
                 stop=None,
                 stream=False
             )
@@ -426,7 +426,6 @@ def main():
             df_prompt = df.copy()
             df_prompt['title'] = df_prompt[args.title_col]
             df_prompt['text'] = df_prompt[args.description_col]
-            df_prompt['genres'] = df_prompt[args.genres_col]
         else:  # movielens
             df_prompt = df.copy()
             df_prompt['title'] = df_prompt[args.title_col]
@@ -466,8 +465,8 @@ def main():
     print(f"\nGenerated {len(prompts_to_run)} tag files in: {args.output_dir}")
     print("\nNext steps:")
     print(f"  1. Place files in: data/{args.dataset}/tags/full/")
-    print(f"  2. Create panel: python create_panel_files.py --dataset_dir data/{args.dataset}")
-    print(f"  3. Evaluate: python compare_tag_methods.py ...")
+    print(f"  2. Create panel: python -m proxytag.analysis.create_panel_files --dataset_dir data/{args.dataset}")
+    print(f"  3. Evaluate: python -m proxytag.analysis.proxy_metric --train_path data/{args.dataset}/train.parquet --items_data_path <panel_tags.parquet> --cf_checkpoint <checkpoint>")
 
 
 if __name__ == "__main__":

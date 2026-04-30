@@ -21,6 +21,7 @@ class HybridRecLightning(pl.LightningModule):
         K: int = 10,
         seed: int = 42,
         tag_encoding_type: str = "cross_encoder",
+        tag_input_dim: int = 384,
         max_eval_samples: int = None,
     ):
         super().__init__()
@@ -39,7 +40,7 @@ class HybridRecLightning(pl.LightningModule):
         self.item_tag_mask = None
 
         self.hidden_dim = hidden_dim
-        self.tag_input_dim = 384  # MiniLM
+        self.tag_input_dim = tag_input_dim
         self.embedding_reg = embedding_reg
         self.tag_encoding_type = tag_encoding_type
         
@@ -75,9 +76,16 @@ class HybridRecLightning(pl.LightningModule):
         self.use_tags = use_tags
 
     def set_item_tag_tensors(self, item_tag_embs, item_tag_mask):
+        # Validate embedding dimension matches model expectation
+        if item_tag_embs.shape[-1] != self.tag_input_dim:
+            raise ValueError(
+                f"Tag embedding dim {item_tag_embs.shape[-1]} != model tag_input_dim {self.tag_input_dim}. "
+                f"Pass tag_input_dim={item_tag_embs.shape[-1]} to the model constructor."
+            )
+
         # Replace any NaN values in embeddings with zeros
         if torch.isnan(item_tag_embs).any():
-            print(f"⚠️ WARNING: Found NaN in item_tag_embs, replacing with zeros")
+            print(f"WARNING: Found NaN in item_tag_embs, replacing with zeros")
             item_tag_embs = torch.where(torch.isnan(item_tag_embs), torch.zeros_like(item_tag_embs), item_tag_embs)
 
         self.item_tag_embs = item_tag_embs

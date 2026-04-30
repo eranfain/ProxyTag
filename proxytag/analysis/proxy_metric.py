@@ -16,7 +16,7 @@ Algorithm:
    - Find K most similar items by CF
    - Find K most similar items by tags
    - Compute NO@K metric
-7. Aggregate correlations (overall + by popularity bucket)
+7. Aggregate NO@K (overall + by popularity bucket)
 """
 
 import argparse
@@ -27,7 +27,6 @@ import pandas as pd
 import torch
 import implicit
 import torch.nn.functional as F
-from scipy.stats import spearmanr
 from pathlib import Path
 from tqdm import tqdm
 from sentence_transformers import SentenceTransformer
@@ -155,8 +154,8 @@ def extract_cf_embeddings(checkpoint_path, num_items, device='cuda'):
         item_embeddings = model.item_emb.weight.cpu().numpy()
 
     # Don't normalize! Model was trained with raw dot products (magnitude matters)
-    # Tag embeddings use cosine similarity, but Spearman correlation only cares
-    # about ranking order, not absolute scale, so different scales are fine.
+    # Tag embeddings use cosine similarity, but NO@K only cares about ranking
+    # order, not absolute scale, so different scales are fine.
 
     print(f"  Shape: {item_embeddings.shape}")
     print(f"  Mean norm: {np.linalg.norm(item_embeddings, axis=1).mean():.4f}")
@@ -240,8 +239,7 @@ def compute_similarity_correlation_panel(
         exclude_self: Exclude the item itself from comparison
 
     Returns:
-        correlation: Spearman rank correlation among CF top-K neighbors
-        recall: Overlap between top-K CF and top-K tag neighbors
+        recall: Overlap between top-K CF and top-K tag neighbors (NO@K)
     """
     # Compute similarities within panel
     cf_vec = panel_cf_vectors[panel_item_idx]
@@ -289,11 +287,11 @@ def evaluate_tag_quality(
         cf_embeddings: [num_items, cf_dim] CF embeddings
         tag_embeddings: [num_items, tag_dim] tag embeddings
         item2idx: Mapping from item ID to index
-        K: Number of neighbors for correlation
+        K: Number of neighbors for NO@K
         n_bins: Number of popularity bins
 
     Returns:
-        results: Dict with overall and per-bin metrics
+        results: Dict with overall and per-bin NO@K metrics
     """
     print("--- Evaluating Tag Quality ---")
 
@@ -316,14 +314,12 @@ def evaluate_tag_quality(
     panel_tag_embeddings = tag_embeddings[panel_indices]
 
     # Initialize storage
-    correlations = []
     recalls = []
-    bin_correlations = {i: [] for i in range(n_bins)}
     bin_recalls = {i: [] for i in range(n_bins)}
 
     # Evaluate each panel item
-    for i, item_id in enumerate(tqdm(panel_ids, desc="Computing correlations")):
-        # Compute correlation within panel
+    for i, item_id in enumerate(tqdm(panel_ids, desc="Computing NO@K")):
+        # Compute NO@K within panel
         recall = compute_similarity_correlation_panel(
             i, panel_cf_embeddings, panel_tag_embeddings, K=K
         )
@@ -337,28 +333,23 @@ def evaluate_tag_quality(
     # Aggregate results
     results = {
         'overall': {
-            'mean_correlation': np.mean(correlations),
-            'std_correlation': np.std(correlations),
             'mean_recall': np.mean(recalls),
             'std_recall': np.std(recalls),
-            'n_items': len(correlations),
+            'n_items': len(recalls),
         }
     }
 
     # Per-bin results
     for bin_idx in range(n_bins):
-        if bin_correlations[bin_idx]:
+        if bin_recalls[bin_idx]:
             results[f'bin_{bin_idx}'] = {
-                'mean_correlation': np.mean(bin_correlations[bin_idx]),
-                'std_correlation': np.std(bin_correlations[bin_idx]),
                 'mean_recall': np.mean(bin_recalls[bin_idx]),
-                'n_items': len(bin_correlations[bin_idx]),
+                'n_items': len(bin_recalls[bin_idx]),
             }
 
     # Print summary
     print(f"\n--- Results Summary ---")
-    print(f"Overall Correlation (Spearman@{K}): {results['overall']['mean_correlation']:.4f} ± {results['overall']['std_correlation']:.4f}")
-    print(f"Overall Recall@{K}: {results['overall']['mean_recall']:.4f}")
+    print(f"Overall NO@{K}: {results['overall']['mean_recall']:.4f} ± {results['overall']['std_recall']:.4f}")
     print(f"Items evaluated: {results['overall']['n_items']}")
 
     print(f"\nBy Popularity Bin:")
@@ -366,7 +357,7 @@ def evaluate_tag_quality(
         key = f'bin_{bin_idx}'
         if key in results:
             r = results[key]
-            print(f"  Bin {bin_idx}: corr={r['mean_correlation']:.4f}, recall@{K}={r['mean_recall']:.4f}, n={r['n_items']}")
+            print(f"  Bin {bin_idx}: NO@{K}={r['mean_recall']:.4f}, n={r['n_items']}")
 
     return results
 
@@ -401,8 +392,8 @@ def main():
     parser.add_argument('--max_tags', type=int, default=16)
 
     # Similarity computation
-    parser.add_argument('--K', type=int, default=50,
-                        help='Number of neighbors for correlation (default: 50)')
+    parser.add_argument('--K', type=int, default=10,
+                        help='Number of neighbors for NO@K (default: 10)')
     parser.add_argument('--use_interaction_cf', action='store_true',
                         help='Use interaction-based CF similarity instead of learned embeddings (recommended)')
 
@@ -515,16 +506,11 @@ def main():
     tag_dim = tag_embeddings.shape[1]
     print(f"  CF dim: {cf_dim}, Tag dim: {tag_dim}")
 
-    # Verify dimensions match (only for learned embeddings, not interaction-based)
-    if not args.use_interaction_cf and tag_dim != cf_dim:
-        raise ValueError(
-            f"Dimension mismatch: CF embeddings are {cf_dim}D but tag embeddings are {tag_dim}D. "
-            f"Set hidden_dim={tag_dim} when training CF baseline to match tag embedding dimension."
-        )
-
-    if args.use_interaction_cf:
-        print(f"  Note: Using interaction-based CF (dim={cf_dim} users) vs tag embeddings (dim={tag_dim})")
-        print(f"        Different dimensions are expected and fine for correlation computation.")
+    # Dimensions may differ between CF and tag spaces — similarities are computed
+    # independently per space, so this is fine (see paper Section 3.2).
+    if cf_dim != tag_dim:
+        print(f"  Note: CF dim ({cf_dim}) != Tag dim ({tag_dim}) — this is expected."
+              f" Similarities are computed independently per space.")
 
     # Align tag embeddings to CF item ordering
     # For interaction-based CF, dimensions differ so we create a separate array

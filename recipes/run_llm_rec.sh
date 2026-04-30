@@ -15,7 +15,7 @@ ITEM_ID_COL="movieId"
 TAGS_FILE="${DATASET_DIR}/tags_llm_rec_item_tags.parquet"
 
 # --- Hyperparameters ---
-HIDDEN_DIM=128
+HIDDEN_DIM=64
 N_HEADS=4
 MAX_TAGS=29
 BATCH_SIZE=1024
