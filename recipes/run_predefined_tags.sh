@@ -16,9 +16,9 @@ ITEM_ID_COL="asin"
 TAGS_FILE="${DATASET_DIR}/tags_categories.parquet"
 
 # --- Hyperparameters ---
-HIDDEN_DIM=128
+HIDDEN_DIM=64
 BATCH_SIZE=1024
-LR=3e-4
+LR=1e-4
 MAX_EPOCHS=20
 N_TRAIN_NEG=20
 N_TEST_NEG=999
@@ -27,9 +27,9 @@ K=10
 # --- Run ---
 python scripts/main.py \
   --job_name "${DATASET}-predefined-tags" \
-  --train_path ${DATASET_DIR}/train.parquet \
-  --val_path ${DATASET_DIR}/val.parquet \
-  --test_path ${DATASET_DIR}/test.parquet \
+  --train_path ${DATASET_DIR}/interactions/train.parquet \
+  --val_path ${DATASET_DIR}/interactions/val.parquet \
+  --test_path ${DATASET_DIR}/interactions/test.parquet \
   --items_data_path ${TAGS_FILE} \
   --user_id_col ${USER_ID_COL} \
   --item_id_col ${ITEM_ID_COL} \

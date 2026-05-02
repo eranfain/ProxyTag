@@ -220,7 +220,7 @@ python -m proxytag.analysis.significance_test \
   --test_path data/ml-32m/interactions/test.parquet \
   --items_data_path data/ml-32m/tags_multi.parquet \
   --user_id_col userId --item_id_col movieId \
-  --max_users 5000 --K 10 --n_test_neg 999
+  --K 10 --n_test_neg 999
 ```
 
 Reports mean, std, t-statistic, p-value, and Cohen's d for Recall@K and NDCG@K.

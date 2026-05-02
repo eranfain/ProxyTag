@@ -393,7 +393,7 @@ def main():
     parser.add_argument('--patience', type=int, default=3)
 
     # Evaluation
-    parser.add_argument('--n_test_neg', type=int, default=99)
+    parser.add_argument('--n_test_neg', type=int, default=999)
     parser.add_argument('--K', type=int, default=10)
     parser.add_argument('--max_eval_samples', type=int, default=None,
                         help='Max interactions for test evaluation (uniformly sampled)')
