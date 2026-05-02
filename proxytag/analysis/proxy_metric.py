@@ -83,16 +83,17 @@ def sample_panel_items(train_df, item_col, panel_size=0.05, n_bins=10, seed=42):
 
 def get_cf_item_emb(train_df, item2idx, user_id_col, item_id_col, embedding_dim=64):
     """
-    Build item-user interaction matrix from training data.
+    Train ALS model and extract L2-normalized item embeddings.
 
     Args:
         train_df: Training interactions DataFrame
         item2idx: Mapping from item ID to index
         user_id_col: User ID column name
         item_id_col: Item ID column name
+        embedding_dim: ALS latent factor dimension
 
     Returns:
-        interaction_matrix: [num_items, num_users] sparse matrix (1 if interaction exists)
+        cf_emb: Dict mapping item ID to normalized embedding vector
     """
     from scipy.sparse import csr_matrix
 
@@ -459,36 +460,25 @@ def main():
 
     # Choose CF representation based on flag
     if args.use_interaction_cf:
-        print("\n--- Using Interaction-based CF (Recommended) ---")
-        # Build interaction matrix: items x users
-        cf_embs = get_cf_item_emb(
+        print("\n--- Using ALS-based CF ---")
+        cf_emb_dict = get_cf_item_emb(
             train_df,
             item2idx,
             args.user_id_col,
             args.item_id_col
         )
 
-        # Only extract panel items to avoid memory issues
-        # Full matrix is too large to densify (e.g., 49k users × 170k items = 68GB)
-        panel_indices = [item2idx[item_id] for item_id in panel_items if item_id in item2idx]
-        print(f"  Panel items in matrix: {len(panel_indices):,} / {len(panel_items):,}")
+        # Build dense embedding matrix from dict (already L2-normalized in get_cf_item_emb)
+        emb_dim = next(iter(cf_emb_dict.values())).shape[0]
+        cf_embeddings = np.zeros((num_items, emb_dim), dtype=np.float32)
+        for item_id, emb in cf_emb_dict.items():
+            if item_id in item2idx:
+                cf_embeddings[item2idx[item_id]] = emb
 
-        # Extract only panel rows and convert to dense
-        panel_matrix = cf_embs[panel_indices, :].toarray().astype(np.float32)
-
-        # Create full-size array with zeros for non-panel items
-        cf_embeddings = np.zeros((num_items, cf_embs.shape[1]), dtype=np.float32)
-        for i, panel_idx in enumerate(panel_indices):
-            cf_embeddings[panel_idx] = panel_matrix[i]
-
-        # Normalize interaction vectors (for cosine similarity)
-        norms = np.linalg.norm(cf_embeddings, axis=1, keepdims=True)
-        norms = np.where(norms > 0, norms, 1.0)
-        cf_embeddings = cf_embeddings / norms
-
-        print(f"  CF representation: interaction vectors (normalized)")
+        print(f"  CF representation: ALS item factors (normalized)")
         print(f"  Shape: {cf_embeddings.shape}")
-        print(f"  Mean norm (panel only): {np.linalg.norm(cf_embeddings[panel_indices], axis=1).mean():.4f}")
+        n_filled = (np.linalg.norm(cf_embeddings, axis=1) > 0).sum()
+        print(f"  Items with embeddings: {n_filled:,} / {num_items:,}")
 
     # Compute tag embeddings
     tag_embeddings, tag_item2idx = compute_tag_embeddings(
