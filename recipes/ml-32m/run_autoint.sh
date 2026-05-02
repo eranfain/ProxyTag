@@ -1,41 +1,44 @@
 #!/bin/bash
 # ==============================================================================
-# CF-Only Baseline (User-to-Item)
+# AutoInt Baseline: MovieLens-32M
 #
-# Pure collaborative filtering with user/item ID embeddings only.
-# No tag information is used. This is the --no_use_tags ablation.
+# Self-attention over user/item embeddings for feature interaction learning.
+# Song et al., "AutoInt: Automatic Feature Interaction Learning via
+# Self-Attentive Neural Networks"
+# Paper: d=64
 # ==============================================================================
 set -e
 
-# --- Configuration (edit these) ---
+# --- Configuration ---
 DATASET="ml-32m"
 DATASET_DIR="data/${DATASET}"
 USER_ID_COL="userId"
 ITEM_ID_COL="movieId"
+RESULTS_DIR="results/${DATASET}"
 
 # --- Hyperparameters ---
-HIDDEN_DIM=64
-BATCH_SIZE=1024
-LR=1e-4
+EMBED_DIM=64
+N_HEADS=8
+N_LAYERS=3
+BATCH_SIZE=256
 MAX_EPOCHS=20
-N_TRAIN_NEG=20
 N_TEST_NEG=999
 K=10
 
 # --- Run ---
-python scripts/main.py \
-  --job_name "${DATASET}-cf-only" \
+python -m proxytag.baselines.autoint \
+  --job_name "${DATASET}-autoint" \
   --train_path ${DATASET_DIR}/interactions/train.parquet \
   --val_path ${DATASET_DIR}/interactions/val.parquet \
   --test_path ${DATASET_DIR}/interactions/test.parquet \
   --user_id_col ${USER_ID_COL} \
   --item_id_col ${ITEM_ID_COL} \
-  --hidden_dim ${HIDDEN_DIM} \
+  --embed_dim ${EMBED_DIM} \
+  --n_heads ${N_HEADS} \
+  --n_layers ${N_LAYERS} \
   --batch_size ${BATCH_SIZE} \
-  --lr ${LR} \
-  --negative_sampler_n_items_train ${N_TRAIN_NEG} \
-  --negative_sampler_n_items_test ${N_TEST_NEG} \
-  --K ${K} \
   --max_epochs ${MAX_EPOCHS} \
-  --no_use_tags \
-  --sentence_transformers_model all-MiniLM-L6-v2
+  --n_test_neg ${N_TEST_NEG} \
+  --K ${K} \
+  --ckpt_dir checkpoints/${DATASET}/autoint \
+  --results_dir ${RESULTS_DIR}

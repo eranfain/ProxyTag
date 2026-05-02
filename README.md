@@ -145,7 +145,7 @@ Evaluation runs automatically after training, reporting Precision@K, Recall@K, a
 - `--no_use_tags` -- CF-only mode (no tag encoding)
 - `--tag_encoding_type mean_pooling` -- simple mean pooling instead of cross-attention
 
-See `recipes/run_proxytag.sh` for a ready-to-run script.
+See `recipes/ml-32m/run_proxytag.sh` and `recipes/amazon-books/run_proxytag.sh` for ready-to-run scripts.
 
 ## 5. Baselines
 
@@ -191,9 +191,9 @@ These baselines use the ProxyTag architecture with different configurations:
 
 | Baseline | Key flags | Recipe |
 |----------|-----------|--------|
-| **LLM-Rec** | `--no_use_item_id --tag_encoding_type mean_pooling` | `recipes/run_llm_rec.sh` |
-| **CF-only** | `--no_use_tags` | `recipes/run_cf_only.sh` |
-| **Predefined tags** | Use `tags_categories.parquet` or `tags_genres.parquet` | `recipes/run_predefined_tags.sh` |
+| **LLM-Rec** | `--no_use_item_id --tag_encoding_type mean_pooling` | `recipes/<dataset>/run_llm_rec.sh` |
+| **CF-only** | `--no_use_tags` | `recipes/<dataset>/run_cf_only.sh` |
+| **Predefined tags** | Use `tags_categories.parquet` or `tags_genres.parquet` | `recipes/<dataset>/run_predefined_tags.sh` |
 
 ## 6. Analysis
 
@@ -248,7 +248,7 @@ python -m proxytag.analysis.create_panel_files \
 
 ## Recipe Scripts
 
-All recipes are in the `recipes/` directory with configurable variables at the top:
+All recipes are in the `recipes/` directory, organized by dataset (`ml-32m/` and `amazon-books/`):
 
 | Script | Description |
 |--------|-------------|
@@ -284,7 +284,7 @@ ProxyTag/
 │   ├── main.py                 # Train/evaluate hybrid model
 │   ├── prepare_data.py         # Data splitting
 │   └── generate_tags.py        # LLM tag generation
-├── recipes/                    # Ready-to-run shell scripts
+├── recipes/                    # Ready-to-run shell scripts (per dataset)
 ├── pyproject.toml
 └── requirements.txt
 ```

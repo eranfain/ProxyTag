@@ -1,13 +1,14 @@
 #!/bin/bash
 # ==============================================================================
-# DCN-v2 Baseline
+# DCN-v2 Baseline: MovieLens-32M
 #
 # Deep & Cross Network v2 with matrix-parameterized cross layers.
 # Wang et al., "DCN V2: Improved Deep & Cross Network"
+# Paper: d=64
 # ==============================================================================
 set -e
 
-# --- Configuration (edit these) ---
+# --- Configuration ---
 DATASET="ml-32m"
 DATASET_DIR="data/${DATASET}"
 USER_ID_COL="userId"
@@ -26,9 +27,9 @@ K=10
 # --- Run ---
 python -m proxytag.baselines.dcnv2 \
   --job_name "${DATASET}-dcnv2" \
-  --train_path ${DATASET_DIR}/train.parquet \
-  --val_path ${DATASET_DIR}/val.parquet \
-  --test_path ${DATASET_DIR}/test.parquet \
+  --train_path ${DATASET_DIR}/interactions/train.parquet \
+  --val_path ${DATASET_DIR}/interactions/val.parquet \
+  --test_path ${DATASET_DIR}/interactions/test.parquet \
   --user_id_col ${USER_ID_COL} \
   --item_id_col ${ITEM_ID_COL} \
   --embed_dim ${EMBED_DIM} \

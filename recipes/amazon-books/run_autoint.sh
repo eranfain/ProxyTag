@@ -1,18 +1,19 @@
 #!/bin/bash
 # ==============================================================================
-# AutoInt Baseline
+# AutoInt Baseline: Amazon Books
 #
 # Self-attention over user/item embeddings for feature interaction learning.
 # Song et al., "AutoInt: Automatic Feature Interaction Learning via
 # Self-Attentive Neural Networks"
+# Paper: d=64
 # ==============================================================================
 set -e
 
-# --- Configuration (edit these) ---
-DATASET="ml-32m"
+# --- Configuration ---
+DATASET="amazon-books"
 DATASET_DIR="data/${DATASET}"
 USER_ID_COL="userId"
-ITEM_ID_COL="movieId"
+ITEM_ID_COL="asin"
 RESULTS_DIR="results/${DATASET}"
 
 # --- Hyperparameters ---
@@ -27,9 +28,9 @@ K=10
 # --- Run ---
 python -m proxytag.baselines.autoint \
   --job_name "${DATASET}-autoint" \
-  --train_path ${DATASET_DIR}/train.parquet \
-  --val_path ${DATASET_DIR}/val.parquet \
-  --test_path ${DATASET_DIR}/test.parquet \
+  --train_path ${DATASET_DIR}/interactions/train.parquet \
+  --val_path ${DATASET_DIR}/interactions/val.parquet \
+  --test_path ${DATASET_DIR}/interactions/test.parquet \
   --user_id_col ${USER_ID_COL} \
   --item_id_col ${ITEM_ID_COL} \
   --embed_dim ${EMBED_DIM} \
