@@ -142,7 +142,8 @@ def main():
     parser.add_argument("--max_tags", type=int, default=24)
 
     # Evaluation
-    parser.add_argument("--max_users", type=int, default=1000)
+    parser.add_argument("--max_users", type=int, default=None,
+                        help="Max users to evaluate (default: all test users)")
     parser.add_argument("--n_test_neg", type=int, default=999)
     parser.add_argument("--K", type=int, default=10)
     parser.add_argument("--seed", type=int, default=42)
@@ -187,7 +188,7 @@ def main():
     # ---- Sample users ----
     rng = np.random.default_rng(args.seed)
     unique_test_users = test_df["uid"].unique()
-    if len(unique_test_users) > args.max_users:
+    if args.max_users and len(unique_test_users) > args.max_users:
         sampled_users = rng.choice(unique_test_users, size=args.max_users,
                                    replace=False)
     else:

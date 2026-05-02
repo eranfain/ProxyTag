@@ -122,7 +122,7 @@ python scripts/main.py \
   --train_path data/ml-32m/interactions/train.parquet \
   --val_path data/ml-32m/interactions/val.parquet \
   --test_path data/ml-32m/interactions/test.parquet \
-  --items_data_path data/ml-32m/tags_multi_use_knowledge_recommend_content.parquet \
+  --items_data_path data/ml-32m/tags_multi_use_knowledge_recommend_mood_style.parquet \
   --user_id_col userId \
   --item_id_col movieId \
   --sentence_transformers_model all-MiniLM-L6-v2 \
@@ -162,7 +162,7 @@ python -m proxytag.baselines.autoint \
   --user_id_col userId --item_id_col movieId \
   --embed_dim 64 --n_heads 8 --n_layers 3 \
   --batch_size 256 --max_epochs 20 \
-  --n_test_neg 1000 --K 10 \
+  --n_test_neg 999 --K 10 \
   --ckpt_dir checkpoints/autoint \
   --results_dir results
 ```
@@ -180,7 +180,7 @@ python -m proxytag.baselines.dcnv2 \
   --user_id_col userId --item_id_col movieId \
   --embed_dim 64 --n_cross_layers 3 --structure parallel \
   --batch_size 256 --max_epochs 20 \
-  --n_test_neg 1000 --K 10 \
+  --n_test_neg 999 --K 10 \
   --ckpt_dir checkpoints/dcnv2 \
   --results_dir results
 ```
@@ -220,7 +220,7 @@ python -m proxytag.analysis.significance_test \
   --test_path data/ml-32m/interactions/test.parquet \
   --items_data_path data/ml-32m/tags_multi.parquet \
   --user_id_col userId --item_id_col movieId \
-  --max_users 1000 --K 10 --n_test_neg 1000
+  --max_users 5000 --K 10 --n_test_neg 999
 ```
 
 Reports mean, std, t-statistic, p-value, and Cohen's d for Recall@K and NDCG@K.

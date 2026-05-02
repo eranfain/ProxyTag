@@ -16,7 +16,7 @@ ITEM_ID_COL="movieId"
 # --- Hyperparameters ---
 HIDDEN_DIM=64
 BATCH_SIZE=1024
-LR=3e-4
+LR=1e-4
 MAX_EPOCHS=20
 N_TRAIN_NEG=20
 N_TEST_NEG=999
