@@ -371,8 +371,8 @@ def main():
                         help='Training interactions (e.g., data/amazon-books/interactions/train.parquet)')
     parser.add_argument('--items_data_path', type=str, required=True,
                         help='Panel tag file (e.g., data/amazon-books/tags/panel/tags_multi.parquet)')
-    parser.add_argument('--cf_checkpoint', type=str, required=True,
-                        help='Path to trained CF model checkpoint')
+    parser.add_argument('--cf_checkpoint', type=str, default=None,
+                        help='Path to trained CF model checkpoint (only needed if --use_interaction_cf is not set)')
 
     # Column names
     parser.add_argument('--user_id_col', type=str, default='userId')
@@ -390,7 +390,7 @@ def main():
     # Tag embeddings
     parser.add_argument('--sentence_transformers_model', type=str,
                         default='all-MiniLM-L6-v2')
-    parser.add_argument('--max_tags', type=int, default=16)
+    parser.add_argument('--max_tags', type=int, default=24)
 
     # Similarity computation
     parser.add_argument('--K', type=int, default=10,

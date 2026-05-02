@@ -89,9 +89,9 @@ Evaluate tag quality by measuring alignment between tag-based and CF-based item 
 # First, train a CF-only model (needed for CF embeddings)
 python scripts/main.py \
   --job_name cf-baseline \
-  --train_path data/ml-32m/train.parquet \
-  --val_path data/ml-32m/val.parquet \
-  --test_path data/ml-32m/test.parquet \
+  --train_path data/ml-32m/interactions/train.parquet \
+  --val_path data/ml-32m/interactions/val.parquet \
+  --test_path data/ml-32m/interactions/test.parquet \
   --user_id_col userId --item_id_col movieId \
   --no_use_tags \
   --sentence_transformers_model all-MiniLM-L6-v2 \
@@ -99,12 +99,12 @@ python scripts/main.py \
 
 # Run proxy metric
 python -m proxytag.analysis.proxy_metric \
-  --train_path data/ml-32m/train.parquet \
+  --train_path data/ml-32m/interactions/train.parquet \
   --items_data_path data/ml-32m/tags_multi.parquet \
-  --cf_checkpoint checkpoints/best.ckpt \
   --user_id_col userId \
   --item_id_col movieId \
   --panel_size 0.05 \
+  --use_interaction_cf \
   --K 10
 ```
 
@@ -119,9 +119,9 @@ The full hybrid model combines user/item embeddings with user-conditioned attent
 ```bash
 python scripts/main.py \
   --job_name ml-32m-proxytag \
-  --train_path data/ml-32m/train.parquet \
-  --val_path data/ml-32m/val.parquet \
-  --test_path data/ml-32m/test.parquet \
+  --train_path data/ml-32m/interactions/train.parquet \
+  --val_path data/ml-32m/interactions/val.parquet \
+  --test_path data/ml-32m/interactions/test.parquet \
   --items_data_path data/ml-32m/tags_multi_use_knowledge_recommend_content.parquet \
   --user_id_col userId \
   --item_id_col movieId \
@@ -156,9 +156,9 @@ Self-attention over user/item embeddings for automatic feature interaction learn
 ```bash
 python -m proxytag.baselines.autoint \
   --job_name ml-32m-autoint \
-  --train_path data/ml-32m/train.parquet \
-  --val_path data/ml-32m/val.parquet \
-  --test_path data/ml-32m/test.parquet \
+  --train_path data/ml-32m/interactions/train.parquet \
+  --val_path data/ml-32m/interactions/val.parquet \
+  --test_path data/ml-32m/interactions/test.parquet \
   --user_id_col userId --item_id_col movieId \
   --embed_dim 64 --n_heads 8 --n_layers 3 \
   --batch_size 256 --max_epochs 20 \
@@ -174,9 +174,9 @@ Deep & Cross Network v2 with matrix-parameterized cross layers:
 ```bash
 python -m proxytag.baselines.dcnv2 \
   --job_name ml-32m-dcnv2 \
-  --train_path data/ml-32m/train.parquet \
-  --val_path data/ml-32m/val.parquet \
-  --test_path data/ml-32m/test.parquet \
+  --train_path data/ml-32m/interactions/train.parquet \
+  --val_path data/ml-32m/interactions/val.parquet \
+  --test_path data/ml-32m/interactions/test.parquet \
   --user_id_col userId --item_id_col movieId \
   --embed_dim 64 --n_cross_layers 3 --structure parallel \
   --batch_size 256 --max_epochs 20 \
@@ -215,9 +215,9 @@ python -m proxytag.analysis.significance_test \
   --model_a_name "ProxyTag" \
   --model_b_ckpt checkpoints/autoint/best.ckpt --model_b_type autoint \
   --model_b_name "AutoInt" \
-  --train_path data/ml-32m/train.parquet \
-  --val_path data/ml-32m/val.parquet \
-  --test_path data/ml-32m/test.parquet \
+  --train_path data/ml-32m/interactions/train.parquet \
+  --val_path data/ml-32m/interactions/val.parquet \
+  --test_path data/ml-32m/interactions/test.parquet \
   --items_data_path data/ml-32m/tags_multi.parquet \
   --user_id_col userId --item_id_col movieId \
   --max_users 1000 --K 10 --n_test_neg 1000

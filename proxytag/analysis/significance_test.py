@@ -46,7 +46,7 @@ def score_batch(model, model_type, user_ids, item_ids):
     if model_type == "hybrid":
         user_vec, item_vec, tags_vec = model(user_ids, item_ids)
         alpha = torch.sigmoid(model.tag_gate)
-        item_combined = alpha * item_vec + tags_vec
+        item_combined = alpha * item_vec + (1 - alpha) * tags_vec
         scores = (user_vec * item_combined).sum(dim=1)
         scores = torch.clamp(scores, -20, 20)
     else:
@@ -139,11 +139,11 @@ def main():
                         help="Path to items/tags parquet (required if a model is hybrid)")
     parser.add_argument("--sentence_transformers_model", type=str,
                         default="all-MiniLM-L6-v2")
-    parser.add_argument("--max_tags", type=int, default=16)
+    parser.add_argument("--max_tags", type=int, default=24)
 
     # Evaluation
     parser.add_argument("--max_users", type=int, default=1000)
-    parser.add_argument("--n_test_neg", type=int, default=1000)
+    parser.add_argument("--n_test_neg", type=int, default=999)
     parser.add_argument("--K", type=int, default=10)
     parser.add_argument("--seed", type=int, default=42)
 

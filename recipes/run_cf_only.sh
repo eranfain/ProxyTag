@@ -25,9 +25,9 @@ K=10
 # --- Run ---
 python scripts/main.py \
   --job_name "${DATASET}-cf-only" \
-  --train_path ${DATASET_DIR}/train.parquet \
-  --val_path ${DATASET_DIR}/val.parquet \
-  --test_path ${DATASET_DIR}/test.parquet \
+  --train_path ${DATASET_DIR}/interactions/train.parquet \
+  --val_path ${DATASET_DIR}/interactions/val.parquet \
+  --test_path ${DATASET_DIR}/interactions/test.parquet \
   --user_id_col ${USER_ID_COL} \
   --item_id_col ${ITEM_ID_COL} \
   --hidden_dim ${HIDDEN_DIM} \

@@ -466,7 +466,7 @@ def main():
     print("\nNext steps:")
     print(f"  1. Place files in: data/{args.dataset}/tags/full/")
     print(f"  2. Create panel: python -m proxytag.analysis.create_panel_files --dataset_dir data/{args.dataset}")
-    print(f"  3. Evaluate: python -m proxytag.analysis.proxy_metric --train_path data/{args.dataset}/train.parquet --items_data_path <panel_tags.parquet> --cf_checkpoint <checkpoint>")
+    print(f"  3. Evaluate: python -m proxytag.analysis.proxy_metric --train_path data/{args.dataset}/interactions/train.parquet --items_data_path <panel_tags.parquet> --use_interaction_cf")
 
 
 if __name__ == "__main__":

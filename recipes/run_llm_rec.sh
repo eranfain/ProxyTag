@@ -17,7 +17,7 @@ TAGS_FILE="${DATASET_DIR}/tags_llm_rec_item_tags.parquet"
 # --- Hyperparameters ---
 HIDDEN_DIM=64
 N_HEADS=4
-MAX_TAGS=29
+MAX_TAGS=24
 BATCH_SIZE=1024
 LR=1e-4
 MAX_EPOCHS=20
@@ -28,9 +28,9 @@ K=10
 # --- Run ---
 python scripts/main.py \
   --job_name "${DATASET}-llm-rec" \
-  --train_path ${DATASET_DIR}/train.parquet \
-  --val_path ${DATASET_DIR}/val.parquet \
-  --test_path ${DATASET_DIR}/test.parquet \
+  --train_path ${DATASET_DIR}/interactions/train.parquet \
+  --val_path ${DATASET_DIR}/interactions/val.parquet \
+  --test_path ${DATASET_DIR}/interactions/test.parquet \
   --items_data_path ${TAGS_FILE} \
   --user_id_col ${USER_ID_COL} \
   --item_id_col ${ITEM_ID_COL} \
